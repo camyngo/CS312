@@ -1,0 +1,64 @@
+process align_unrestricted(sequenceA[1...m], sequenceB[1...n]):
+    Initialize n+1 by m+1 table T
+
+    //init values in table
+    for i in range(0, m+1):
+        for j in range(0, n+1):
+            if (i == 0): //Rows!
+                T[i, j] = j*P_indel
+            if (j == 0): //Cols
+                T[i, j] = i*P_indel
+
+    //Start populating
+    for row i in T starting from i=1:
+        for entry j in row i starting from j=1:
+            upper_value = T[i-1, j] + P_indel //Fetch upper value and add penalty (indel)
+            left_value = T[i, j-1] + P_indel  //Fetch left value and add penalty (indel)
+            diag_value = T[i-1, j-1]
+            if sequenceA[i-1] == sequenceB[j-1]:
+                diag_value -= P_match  //Match
+            else:
+                diag_value += P_sub  //Substitution
+
+            x = min(upper_value, left_value, diag_value)
+            T[i, j] = x
+
+    return T
+
+
+process extract(table T[1...n, 1...m], sequenceA, sequenceB):
+
+    sequenceA = sequenceA.copy().reverse()
+    sequenceB = sequenceB.copy().reverse()
+
+    sequenceAOut = ""
+    sequenceBOut = ""
+
+    i = n
+    j = m
+
+    while i,j != 0,0:
+
+        vals = [('upper', T[i-1,j]), ('left', T[i, j-1]), ('diag', T[i-1, j-1])
+        sort(vals) by 2nd element of each entry, ascending
+
+        // Make sure diag comes first if tie
+        if(vals[0][1] == vals[1][1] or vals[0][1] == vals[2][1]):
+            x = ('diag', vals[0][1])
+        else:
+            x = vals[0] // The minimum
+
+        //Apply appropriate characters to out
+        if x[0] == upper:
+            sequenceAOut += sequenceA.pop()
+            sequenceBOut.append("-")
+            i -= 1
+        if x[0] == left:
+            sequenceAOut.append('-')
+            sequenceBOut = sequenceB.pop()
+            j-=1
+        if x[0] == diag:
+            sequenceAOut = sequenceA.pop()
+            sequenceBOut = sequenceB.pop()
+            i -= 1
+            j -= 1
